@@ -1,5 +1,6 @@
 use crate::{DynamicEntity, DynamicScene};
 use anyhow::Result;
+use bevy_ecs::prelude::Entity;
 use bevy_reflect::serde::{TypedReflectDeserializer, TypedReflectSerializer};
 use bevy_reflect::{
     serde::{TypeRegistrationDeserializer, UntypedReflectDeserializer},
@@ -229,9 +230,9 @@ impl<'a, 'de> Visitor<'de> for SceneEntitiesVisitor<'a> {
         A: MapAccess<'de>,
     {
         let mut entities = Vec::new();
-        while let Some(id) = map.next_key::<u32>()? {
+        while let Some(entity) = map.next_key::<Entity>()? {
             let entity = map.next_value_seed(SceneEntityDeserializer {
-                id,
+                entity,
                 type_registry: self.type_registry,
             })?;
             entities.push(entity);
@@ -242,7 +243,7 @@ impl<'a, 'de> Visitor<'de> for SceneEntitiesVisitor<'a> {
 }
 
 pub struct SceneEntityDeserializer<'a> {
-    pub id: u32,
+    pub entity: Entity,
     pub type_registry: &'a TypeRegistry,
 }
 
@@ -257,7 +258,7 @@ impl<'a, 'de> DeserializeSeed<'de> for SceneEntityDeserializer<'a> {
             ENTITY_STRUCT,
             &[ENTITY_FIELD_COMPONENTS],
             SceneEntityVisitor {
-                id: self.id,
+                entity: self.entity,
                 registry: self.type_registry,
             },
         )
@@ -265,7 +266,7 @@ impl<'a, 'de> DeserializeSeed<'de> for SceneEntityDeserializer<'a> {
 }
 
 struct SceneEntityVisitor<'a> {
-    pub id: u32,
+    pub entity: Entity,
     pub registry: &'a TypeRegistry,
 }
 
@@ -287,7 +288,7 @@ impl<'a, 'de> Visitor<'de> for SceneEntityVisitor<'a> {
             .ok_or_else(|| Error::missing_field(ENTITY_FIELD_COMPONENTS))?;
 
         Ok(DynamicEntity {
-            entity: self.id,
+            entity: self.entity,
             components,
         })
     }
@@ -315,7 +316,7 @@ impl<'a, 'de> Visitor<'de> for SceneEntityVisitor<'a> {
             .take()
             .ok_or_else(|| Error::missing_field(ENTITY_FIELD_COMPONENTS))?;
         Ok(DynamicEntity {
-            entity: self.id,
+            entity: self.entity,
             components,
         })
     }
@@ -671,7 +672,7 @@ mod tests {
                 .entities
                 .iter()
                 .find(|dynamic_entity| dynamic_entity.entity == expected.entity)
-                .unwrap_or_else(|| panic!("missing entity (expected: `{}`)", expected.entity));
+                .unwrap_or_else(|| panic!("missing entity (expected: `{:?}`)", expected.entity));
 
             assert_eq!(expected.entity, received.entity, "entities did not match",);
 

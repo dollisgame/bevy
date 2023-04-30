@@ -31,7 +31,7 @@ use std::collections::BTreeMap;
 /// let dynamic_scene = builder.build();
 /// ```
 pub struct DynamicSceneBuilder<'w> {
-    extracted_scene: BTreeMap<u32, DynamicEntity>,
+    extracted_scene: BTreeMap<Entity, DynamicEntity>,
     type_registry: AppTypeRegistry,
     original_world: &'w World,
 }
@@ -113,14 +113,12 @@ impl<'w> DynamicSceneBuilder<'w> {
         let type_registry = self.type_registry.read();
 
         for entity in entities {
-            let index = entity.index();
-
-            if self.extracted_scene.contains_key(&index) {
+            if self.extracted_scene.contains_key(&entity) {
                 continue;
             }
 
             let mut entry = DynamicEntity {
-                entity: index,
+                entity,
                 components: Vec::new(),
             };
 
@@ -138,7 +136,7 @@ impl<'w> DynamicSceneBuilder<'w> {
                     entry.components.push(reflect_component.clone_value());
                 }
             }
-            self.extracted_scene.insert(index, entry);
+            self.extracted_scene.insert(entity.id(), entry);
         }
 
         drop(type_registry);
@@ -179,7 +177,7 @@ mod tests {
         let scene = builder.build();
 
         assert_eq!(scene.entities.len(), 1);
-        assert_eq!(scene.entities[0].entity, entity.index());
+        assert_eq!(scene.entities[0].entity, entity);
         assert_eq!(scene.entities[0].components.len(), 1);
         assert!(scene.entities[0].components[0].represents::<ComponentA>());
     }
@@ -200,7 +198,7 @@ mod tests {
         let scene = builder.build();
 
         assert_eq!(scene.entities.len(), 1);
-        assert_eq!(scene.entities[0].entity, entity.index());
+        assert_eq!(scene.entities[0].entity, entity);
         assert_eq!(scene.entities[0].components.len(), 1);
         assert!(scene.entities[0].components[0].represents::<ComponentA>());
     }
@@ -224,7 +222,7 @@ mod tests {
         let scene = builder.build();
 
         assert_eq!(scene.entities.len(), 1);
-        assert_eq!(scene.entities[0].entity, entity.index());
+        assert_eq!(scene.entities[0].entity, entity);
         assert_eq!(scene.entities[0].components.len(), 2);
         assert!(scene.entities[0].components[0].represents::<ComponentA>());
         assert!(scene.entities[0].components[1].represents::<ComponentB>());
@@ -251,10 +249,10 @@ mod tests {
         let mut entities = builder.build().entities.into_iter();
 
         // Assert entities are ordered
-        assert_eq!(entity_a.index(), entities.next().map(|e| e.entity).unwrap());
-        assert_eq!(entity_b.index(), entities.next().map(|e| e.entity).unwrap());
-        assert_eq!(entity_c.index(), entities.next().map(|e| e.entity).unwrap());
-        assert_eq!(entity_d.index(), entities.next().map(|e| e.entity).unwrap());
+        assert_eq!(entity_a, entities.next().map(|e| e.entity).unwrap());
+        assert_eq!(entity_b, entities.next().map(|e| e.entity).unwrap());
+        assert_eq!(entity_c, entities.next().map(|e| e.entity).unwrap());
+        assert_eq!(entity_d, entities.next().map(|e| e.entity).unwrap());
     }
 
     #[test]
@@ -281,7 +279,7 @@ mod tests {
         assert_eq!(scene.entities.len(), 2);
         let mut scene_entities = vec![scene.entities[0].entity, scene.entities[1].entity];
         scene_entities.sort();
-        assert_eq!(scene_entities, [entity_a_b.index(), entity_a.index()]);
+        assert_eq!(scene_entities, [entity_a_b, entity_a]);
     }
 
     #[test]
@@ -301,6 +299,6 @@ mod tests {
         let scene = builder.build();
 
         assert_eq!(scene.entities.len(), 1);
-        assert_eq!(scene.entities[0].entity, entity_a.index());
+        assert_eq!(scene.entities[0].entity, entity_a);
     }
 }
