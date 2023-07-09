@@ -2,6 +2,7 @@ use crate::components::{GlobalTransform, Transform};
 use bevy_ecs::{
     change_detection::Ref,
     prelude::{Changed, DetectChanges, Entity, Query, With, Without},
+    query::Or,
 };
 use bevy_hierarchy::{Children, Parent};
 
@@ -11,7 +12,11 @@ use bevy_hierarchy::{Children, Parent};
 pub fn sync_simple_transforms(
     mut query: Query<
         (&Transform, &mut GlobalTransform),
-        (Changed<Transform>, Without<Parent>, Without<Children>),
+        (
+            Or<(Changed<Transform>, Changed<GlobalTransform>)>,
+            Without<Parent>,
+            Without<Children>,
+        ),
     >,
 ) {
     query
@@ -35,7 +40,7 @@ pub fn propagate_transforms(
 ) {
     root_query.par_iter_mut().for_each_mut(
         |(entity, children, transform, mut global_transform)| {
-            let changed = transform.is_changed();
+            let changed = transform.is_changed() || !global_transform.is_changed();
             if changed {
                 *global_transform = GlobalTransform::from(*transform);
             }
@@ -122,7 +127,7 @@ unsafe fn propagate_recursive(
                 return;
             };
 
-        changed |= transform.is_changed();
+        changed |= transform.is_changed() || global_transform.is_changed();
         if changed {
             *global_transform = parent.mul_transform(*transform);
         }
