@@ -40,7 +40,7 @@ pub fn propagate_transforms(
 ) {
     root_query.par_iter_mut().for_each_mut(
         |(entity, children, transform, mut global_transform)| {
-            let changed = transform.is_changed() || !global_transform.is_changed();
+            let changed = transform.is_changed() || global_transform.is_added();
             if changed {
                 *global_transform = GlobalTransform::from(*transform);
             }
@@ -127,7 +127,7 @@ unsafe fn propagate_recursive(
                 return;
             };
 
-        changed |= transform.is_changed() || global_transform.is_changed();
+        changed |= transform.is_changed() || global_transform.is_added();
         if changed {
             *global_transform = parent.mul_transform(*transform);
         }
