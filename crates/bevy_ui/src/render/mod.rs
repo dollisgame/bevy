@@ -604,7 +604,7 @@ pub fn extract_text_uinodes(
         transform.w_axis[0] = transform.w_axis[0].round();
         transform.w_axis[1] = transform.w_axis[1].round();
 
-        transform = transform * Mat4::from_scale(Vec3::splat(inverse_scale_factor));
+        transform *= Mat4::from_scale(Vec3::splat(inverse_scale_factor));
 
         let mut color = Color::WHITE;
         let mut current_section = usize::MAX;
